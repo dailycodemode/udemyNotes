@@ -122,3 +122,9 @@ Inject IMediator into Base controller
         return await Mediator.Send(new List.Query());
     }
 ```
+
+4. Register MediatR as a service.
+```
+services.AddMediatR(typeof(List.Handler)); // ---- any handler could have been chosen
+```
+Check if working: dotnet watch --no-hot-reload
