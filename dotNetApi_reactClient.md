@@ -1,4 +1,20 @@
-<h1>Section 2</h1>
+<h1>Complete guide to building an app with .Net Core and React</h1>
+https://www.udemy.com/course/complete-guide-to-building-an-app-with-net-core-and-react/
+
+<h2>Intro</h2>
+This walkthrough is for the strucutral setup of the .net side of this course. The main repo can be found here.
+
+https://github.com/TryCatchLearn/Reactivities
+
+<h2>Folder structure.</h2>
+
+1. Client => react app
+2. API => Controllers & starting point
+3. Application => business logic
+4. Domain => object classes
+5. Persistence => DB connection, seeding + query commands
+
+<h2>Section 2</h2>
 cmd: .net list
 
 1. Creating the .Net project
@@ -17,7 +33,7 @@ microsoft.entityframeworkcore.sqlite
 Add DataContext
 ```
 public DbSet<Value> Values { get; set; }
-``
+```
 
 5. Add services
 builder.Services.AddDbContext to Program.cs
@@ -63,9 +79,46 @@ OR
 dotnet ef database update
 ```
 
-<h1>Section 4</h1>
+<h2>Section 4 - CQRS+Mediator</h2>
 See CleanArchitecture.jpg
 Entities = Domain layer
 Use Cases = Application & Business logic. Each use class will have its own Class.
 Controllers = Interface between use cases and the external client/DB
 Frameworks/Drivers = DB, user interface
+
+Nuget
+mediatR.Extensions.Microsoft.DependencyInjection into Application
+
+1. In application i.e. business logic layer, create Activites folder .
+
+Create.vs, Delete.cs, Details.cs, Edit.cs, List.cs
+
+2. Types of additions.cs .
+
+IRequest is a MediatR object. This will be where you set the paramters
+IRequestHandler is a MediatR interface. Where the DB sending will be done e.g
+```
+    public async Task<List<Activity>> Handle(Query request, CancellationToken token)
+    {
+        return await _context.Activities.ToListAsync();
+    }
+```
+
+3. Activities controller.
+
+Inject IMediator into Base controller
+```
+    private IMediator _mediator;
+
+    protected IMediator Mediator => _mediator ??= 
+        HttpContext.RequestServices.GetService<IMediator>();
+```
+ 
+ Update the Activities controller to use the Mediator rather than the dbContext
+```
+    [HttpGet]
+    public async Task<ActionResult<List<Activity>>> GetActivities()
+    {
+        return await Mediator.Send(new List.Query());
+    }
+```
