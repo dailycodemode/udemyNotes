@@ -128,3 +128,83 @@ Inject IMediator into Base controller
 services.AddMediatR(typeof(List.Handler)); // ---- any handler could have been chosen
 ```
 Check if working: dotnet watch --no-hot-reload
+
+
+<h2>Section 7 - Mobx</h2>
+
+```
+npm install mobx mobx-react-lite
+```
+
+Stores folder in /src/tores
+
+touch ActivtyStore.ts
+
+touch store.ts
+
+Add code
+
+1. Wrap App in StoreContext.Provider value={store}.
+
+2. Where useStates are being used, add activityStore. 
+```
+{activityStore} = useActivityStore
+```
+3. Add the setters in the activityStore.ts  .
+4. Make App.tsx an observer.
+```
+export default observer(App);
+```
+
+5. Update the code base to use store. Note, to use Store then function components need to be made observers
+
+<h2>Section 8 - reactRouter</h2>
+
+```
+npm install react-router-dom  
+```
+add Routes folder
+
+
+
+<h2>Section 10 - validation</h2>
+
+1. install fluent validation.
+
+2. Wrap the Validation around the Creat.cs, where the Handler is creating the connecitons
+
+
+3. Add Fluent Configuration to the AppServiceExtensions.cs
+Below AutoMapper. Any other validators will be registered alongside.
+
+4. Add a ActitiyValidator.cs in applications/activities/
+
+5. Derive from AbstractValidator<Activity>. Add all rules.
+
+6. Update the ApplicationsServiceExtensions.cs 
+
+7. Update other Command commands e.g. Edit.
+
+
+<h4>Section 10 - validation - api error response</h4>
+
+Add a Result.cs to application/core/ to check if api call was a success.
+Update Details Query class to return a {Result{Activity}}
+
+
+
+<h2>Section 14 - ef relationships</h2>
+
+<h4>Section 14 - ef relationships - configuring the relationship</h4>
+
+1. Create many to many relationship. In the /domain/ , add a reference to the realted class in the other classes.
+Create new class ActivityAttenddee.cs  
+Update the two classes to reference this class instead.
+
+2. Open DataContext.cs
+
+add dbSet{ActitivyAttendee}
+
+3. Override the class to create a new builder. Add both way relationships.
+
+
