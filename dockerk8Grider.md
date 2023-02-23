@@ -345,6 +345,7 @@ CMD ["npm", "run", "start"]
 
 ```
 docker build -f Dockerfile.dev
+docker build -f Dockerfile.dev -t steedman:frontend .
 ```
 
 65. Starting the container
@@ -365,4 +366,12 @@ docker run -it -p 3000:3000 -v /home/node/app/node_modules -v ~/frontend:/home/n
 docker run -it -p 3000:3000 -v /home/node/app/node_modules -v /home/YOURUSERNAME/frontend:/home/node/app USERNAME:frontend
 ```
 
-
+ubuntu
+* move source folder to ubuntu home location
+* have the Dockerfile.dev to include change ownership
+* build and run. changing the App.js file should now be reflected.
+```
+docker run -it -p 3000:3000 -v /home/node/app/node_modules -v /home/ubu/repos/frontend-wsl:/home/node/app steedman:frontend
+OR
+docker run -it -p 3000:3000 -v /home/node/app/node_modules -v /home/ubu/frontend:/home/node/app USERNAME:frontend
+```
