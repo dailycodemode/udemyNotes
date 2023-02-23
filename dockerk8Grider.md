@@ -2,7 +2,7 @@
 Stepehn Grider.
 https://www.udemy.com/course/docker-and-kubernetes-the-complete-guide
 
-<h3>Sec 1 - intro</h3>
+### Sec 1 - intro
 
 13. Commands
 ```
@@ -85,7 +85,7 @@ Ctrl+d
 docker run -it busybox sh
 ```
 
-<h3>Sec 2 - Custom Image with Docker</h3>
+### Sec 2 - Custom Image with Docker
 
 28. Dockerfile
 
@@ -119,7 +119,7 @@ docker commit -c "CMD 'redis-server'" asdasfsdafasdfsd
 >will give a hash e.g. aaaaaabbbbbbb
 docker run aaaaaabbbbbbb
 ```
-<h3>Sec 4 - basic node js express project</h3>
+### Sec 4 - basic node js express project
 
 38. Add package.json to tell node.js app to run
 ```
@@ -174,7 +174,7 @@ localhost:8087
 WORKDIR /usr/app
 ```
 
-<h3>Sec 5 - dockerCompose - express + redis</h3>
+### Sec 5 - dockerCompose - express + redis
 
 46. Add package.json to tell node.js app to run
 ```
@@ -314,7 +314,7 @@ unless-stopped
     restart: on-failure
 ```
 
-<h3>Sec 5 - dev workflow</h3>
+### Sec 5 - dev workflow
 
 62.  basic react app
 ```
@@ -374,4 +374,84 @@ ubuntu
 docker run -it -p 3000:3000 -v /home/node/app/node_modules -v /home/ubu/repos/frontend-wsl:/home/node/app steedman:frontend
 OR
 docker run -it -p 3000:3000 -v /home/node/app/node_modules -v /home/ubu/frontend:/home/node/app USERNAME:frontend
+```
+
+70. Shorthand docker compose for the above
+```
+version: "3"
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - /home/node/app/node_modules
+      - .:/home/node/app
+```
+71. executing tests from Docker 
+
+```
+docker run -it fgsdfgtsdfhkjg npm run test
+```
+Will allow you to run your own manual testing.
+
+72. Live updating tests
+2 options
+* Open 2nd terminal. Find running container and run test against existing container.
+Problem: have to rememner process.
+```
+docker exec -it sdfgfdsg npm run test
+```
+* Attach a 2nd service in docker-compose, allows for statard input testing and overwrite starting command.
+Problem: can't add any manual inputs.
+```
+version: "3"
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - /home/node/app/node_modules
+      - .:/home/node/app
+  tests:
+    stdin_open: true
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - /home/node/app/node_modules
+      - .:/home/node/app
+    command: ["npm", "run", "test"]
+```
+```
+docker-compose up --build
+```
+--build is used when another service is added.
+
+77. Nginx
+
+To be used in producation as web server used in Dev which falls away after build.
+
+78. Multistep build process for Prod Dockerfile 
+```
+FROM node:16-alpine as builder
+WORKDIR '/app'
+COPY package.json .
+RUN npm install
+COPY . .
+RUN npm run build
+
+FROM nginx
+COPY --from=builder /app/build /usr/share/nginx/html
+```
+
+79. Running nginx
+```
+docker build .
+docker run -p 8080:80 asdfasdfsda
 ```
