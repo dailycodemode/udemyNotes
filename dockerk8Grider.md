@@ -348,6 +348,10 @@ docker build -f Dockerfile.dev
 docker build -f Dockerfile.dev -t steedman:frontend .
 ```
 
+'''
+docker build -t steedman:frontendTest .
+docker run -p 8080:80 steedman:frontendTest
+'''
 65. Starting the container
 ```
 docker run -p 3000:3000 adsfgasdffg
@@ -455,3 +459,60 @@ COPY --from=builder /app/build /usr/share/nginx/html
 docker build .
 docker run -p 8080:80 asdfasdfsda
 ```
+### Section 7 - Workflow 
+80. Azure Devops CI
+* Set up new service connection to Docker Registry. 
+* Add pipeline file
+```
+touch azure-pipelines.yml
+```
+```
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+  tag: '$(Build.BuildId)' 
+  
+stages:
+- stage: Build
+  displayName: Build image
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latesth
+    steps:       
+    - task: Docker@2
+      displayName: Build an image
+      inputs:
+        command: build
+        dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+        repository: 'steedman/testazdo'
+        tags: |
+          $(tag)
+
+    - task: Docker@2
+      displayName: Login to Docker Hub
+      inputs:
+        command: login
+        containerRegistry: steedman_dockerHub
+
+    - task: Docker@2
+      displayName: 'Push the Docker image to Dockerhub'
+      inputs:
+        repository: 'steedman/testazdo'
+        command: 'push'
+        tags: |
+          $(tag)
+
+    - task: Docker@2
+      displayName: Logout of ACR
+      inputs:
+        command: logout
+        containerRegistry: steedman_dockerHub
+```
+* Add new pipeline. Point to azurepipeline file above. 
+* Turn on CI
