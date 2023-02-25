@@ -474,7 +474,7 @@ resources:
 - repo: self
 
 variables:
-  tag: '$(Build.BuildId)' 
+  tag: 'TestV2' 
   
 stages:
 - stage: Build
@@ -483,7 +483,7 @@ stages:
   - job: Build
     displayName: Build
     pool:
-      vmImage: ubuntu-latesth
+      vmImage: ubuntu-latest
     steps:       
     - task: Docker@2
       displayName: Build an image
@@ -513,6 +513,55 @@ stages:
       inputs:
         command: logout
         containerRegistry: steedman_dockerHub
+
+- stage: Deploy
+  displayName: Deploy to AWS beanstalk
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: windows-latest
+    steps:       
+    - task: Bash@3
+      displayName: TempFile
+      inputs:
+        targetType: 'inline'
+        script: echo "hi there" > testFile.txt
+
+    - task: AWSCLI@1
+      displayName: AddTempFileToS3
+      inputs:
+        awsCredentials: 'aws4'
+        regionName: 'eu-west-1'
+        awsCommand: 's3'
+        awsSubCommand: 'cp'
+        awsArguments: 'testFile.txt s3://elasticbeanstalk-eu-west-1-498738601876'
+
+    - task: AWSCLI@1
+      displayName: AddTempFileToS3
+      inputs:
+        awsCredentials: 'aws4'
+        regionName: 'eu-west-1'
+        awsCommand: 'elasticbeanstalk'
+        awsSubCommand: 'create-application-version'
+        awsArguments: '--application-name "docker-react" --version-label 1 --source-bundle S3Bucket="elasticbeanstalk-eu-west-1-498738601876",S3Key=Dockerrun.aws.json'
+
+    - task: AWSCLI@1
+      displayName: AddTempFileToS3
+      inputs:
+        awsCredentials: 'aws4'
+        regionName: 'eu-west-1'
+        awsCommand: 'elasticbeanstalk'
+        awsSubCommand: 'update-environment'
+        awsArguments: '--application-name "docker-react" --environment-name "Dockerreact-env" --version-label=1'
+
 ```
 * Add new pipeline. Point to azurepipeline file above. 
 * Turn on CI
+* Build stage builds the Docker image. Deploy, adds a config file to an S3 bucket, creates a version of that in the EBS and finally updates to that version.
+
+```
+aws elasticbeanstalk create-application-version --application-name "docker-react" --version-label 1 --source-bundle S3Bucket="elasticbeanstalk-eu-west-1-498738601876",S3Key=Dockerrun.aws.json
+aws elasticbeanstalk update-environment --application-name "docker-react" --environment-name "Dockerreact-env" --version-label=1
+```
+
