@@ -565,3 +565,12 @@ aws elasticbeanstalk create-application-version --application-name "docker-react
 aws elasticbeanstalk update-environment --application-name "docker-react" --environment-name "Dockerreact-env" --version-label=1
 ```
 
+### Section 8 - Multi Containers 
+
+104. Set up worker folders and code 
+worker/ => where work is done and which will connect to redis
+server/ => express 
+
+
+
+### Section 9 - Dockerizing Multi Containers 
