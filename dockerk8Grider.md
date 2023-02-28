@@ -634,6 +634,22 @@ services:
       context: ./nginx
     ports:
       - '3050:80'
+```
+
+
+121. Add postgres to docker-compose. Add redis to docker-compose.
+Add server. Add volumes for the server.
+```
+  api:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./server
+    volumes:
+      - /app/node_modules
+      - ./server:/app
+```
+122. Set up environment variables for different services. Default redis and postgress variables are available on the DockerHub page/
+```
   api:
     build:
       dockerfile: Dockerfile.dev
@@ -649,6 +665,9 @@ services:
       - PGDATABASE=postgres
       - PGPASSWORD=postgres_password
       - PGPORT=5432
+```
+123. Add client service and worker service.
+```
   client:
     environment:
       - WDS_SOCKET_PORT=0
@@ -668,6 +687,89 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+```
+125. Nginx Path Routing
+Development will usee Nginx for multcontainer as there will be multiple routes (client or express server). Nginx will decide how routes get handled.
+
+Nginx will redirect traffic based on 
+* /
+* /api/
+ 
+126. ngnx default.conf
+```
+mkdir nginx
+touch nginx/default.conf
+```
+```
+upstream client {
+  server client:3000;
+}
+
+upstream api {
+  server api:5000;
+}
+
+server {
+  listen 80;
+
+  location / {
+    proxy_pass http://client;
+  }
+
+  location /ws {
+      proxy_pass http://client;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "Upgrade";
+  }
+
+  location /api {
+    rewrite /api/(.*) /$1 break;
+    proxy_pass http://api;
+  }
+}
+```
+Qu. Upstream server. Server api and client. 
+Changing the name 'server' to api to prevent confusion.
+Note: the line 'rewrite /api/(.*) /$1 break;' says to remove the /api/ bit and leave the rest alone. The break says to apply no further rules.
+
+126. nginx Dockerfile
+```
+FROM nginx
+COPY ./default.conf /etc/nginx/conf.d/default.conf
+```
+Add nginx server to docker-compose.yml
+```
+  nginx:
+    depends_on:
+      - api
+      - client
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - '3050:80'
+```
+127. startup 
+```
+docker-compose up --build
+```
+Will likely fail first time.
+
+Visit server on localhost:3050
+
+
+130. websocket issue
+Websockets allow the back and forth communication between the react app and server which will notify it of changes. The nginx config file can be updated to allow it through.
 
 ```
+  location /ws {
+      proxy_pass http://client;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "Upgrade";
+  }
+```
+
 
