@@ -1070,3 +1070,12 @@ ADO deployment
         awsArguments: '--application-name "multi-docker" --environment-name "Multidocker-env" --version-label=1'
 
 ```
+
+
+# Sec 14 - Multi container app in Kubernetes
+
+208. Routing
+Ingress will handle routing in k8s. Nginx was used in docker.
+
+215. Worker Cluster IP
+Worker does not need a cluster IP as nothing needs to communicate to it. The worker pod is subscribed to the redis pod so it should see the ingestion and be able to do its work. 
