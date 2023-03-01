@@ -704,3 +704,300 @@ Websockets allow the back and forth communication between the react app and serv
 ```
 
 
+### Section 9 - CI workflow for multicontainer app
+
+134. Make producation versions of Dockerfiles.
+Copy Dockefile and updaete the start up script to.
+```
+CMD ["npm", "run", "start"]
+```
+
+135. Multiple nginx
+
+One for Routing and one for the client.
+
+137. nginx listedning port for client server
+```
+touch client/nginx/default.conf
+```
+```
+server {
+  listen 3000;
+
+  location / {
+    root /usr/share/nginx/html;
+    index index.html index.htm;
+    try_files $uri $uri/ /index.html;
+  }
+}
+```
+```
+touch Dockerfile
+```
+```
+FROM node:16-alpine as builder
+WORKDIR '/app'
+COPY ./package.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+FROM nginx
+EXPOSE 3000
+COPY ./nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/build /usr/share/nginx/html
+```
+Expose it on 3000, copy over the nginx conf, copy over the build directory.
+
+
+139. Deployment file
+* Build production versions for all projects. Use dockerfile.dev as tests need to be run. 
+* Then run tests
+* If success, build production version of all projects, using all Dockefile's . Include them all in the same build step.
+
+ ```
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+  tag: $(Build.BuildId)
+  
+stages:
+- stage: Build
+  displayName: Build image
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:     
+    # - task: Bash@3
+    #   displayName: docker tests
+    #   inputs:
+    #     targetType: 'inline'
+    #     script: echo steedman/react-test:$(tag)
+
+### Image Test
+    - task: Docker@2
+      displayName: Build a test client image
+      inputs:
+        command: build
+        dockerfile: '$(Build.SourcesDirectory)/client/Dockerfile.dev'
+        repository: 'steedman/react-test'
+        buildContext: '$(Build.SourcesDirectory)/client'
+        tags: |
+          $(tag)
+
+    - task: Bash@3
+      displayName: grep docker images
+      inputs:
+        targetType: 'inline'
+        script: docker images | grep steedman
+
+    - task: Bash@3
+      displayName: docker tests
+      inputs:
+        targetType: 'inline'
+        script: docker run -e CI=true steedman/react-test:$(tag) npm test
+        tags: |
+          $(tag)
+
+### Image Build
+    - task: Docker@2
+      displayName: docker multi-client image
+      inputs:
+        command: build
+        dockerfile: '$(Build.SourcesDirectory)/client/Dockerfile'
+        repository: 'steedman/multi-client'
+        buildContext: '$(Build.SourcesDirectory)/client'
+        tags: |
+          $(tag)
+
+    - task: Docker@2
+      displayName: docker multi-nginx image
+      inputs:
+        command: build
+        dockerfile: '$(Build.SourcesDirectory)/nginx/Dockerfile'
+        repository: 'steedman/multi-nginx'
+        buildContext: '$(Build.SourcesDirectory)/nginx'
+        tags: |
+          $(tag)
+
+    - task: Docker@2
+      displayName: docker multi-server image
+      inputs:
+        command: build
+        dockerfile: '$(Build.SourcesDirectory)/server/Dockerfile'
+        repository: 'steedman/multi-server'
+        buildContext: '$(Build.SourcesDirectory)/server'
+        tags: |
+          $(tag)
+
+    - task: Docker@2
+      displayName: docker multi-worker image
+      inputs:
+        command: build
+        dockerfile: '$(Build.SourcesDirectory)/worker/Dockerfile'
+        repository: 'steedman/multi-worker'
+        buildContext: '$(Build.SourcesDirectory)/worker'
+        tags: |
+          $(tag)
+
+    - task: Bash@3
+      displayName: grep docker images
+      inputs:
+        targetType: 'inline'
+        script: docker images | grep steedman
+
+### DockerHub
+    - task: Docker@2
+      displayName: Login to Docker Hub
+      inputs:
+        command: login
+        containerRegistry: steedman_dockerHub
+
+    - task: Docker@2
+      displayName: 'Push multi-client to Dockerhub'
+      inputs:
+        repository: 'steedman/multi-client'
+        command: 'push'
+        tags: |
+          $(tag)
+
+    - task: Docker@2
+      displayName: 'Push multi-nginx to Dockerhub'
+      inputs:
+        repository: 'steedman/multi-nginx'
+        command: 'push'
+        tags: |
+          $(tag)
+
+    - task: Docker@2
+      displayName: 'Push multi-server to Dockerhub'
+      inputs:
+        repository: 'steedman/multi-server'
+        command: 'push'
+        tags: |
+          $(tag)
+
+    - task: Docker@2
+      displayName: 'Push multi-worker to Dockerhub'
+      inputs:
+        repository: 'steedman/multi-worker'
+        command: 'push'
+        tags: |
+          $(tag)
+
+    - task: Docker@2
+      displayName: Logout of ACR
+      inputs:
+        command: logout
+        containerRegistry: steedman_dockerHub
+ ```
+
+### Section 10 - CI workflow for multicontainer app
+
+146. Container definition file
+
+NOTE: THIS SECTION MAY BE OUT OF DATE
+```
+touch Docxkerrun.aws.json
+```
+```
+
+```
+Create a Elastic Beanstalk instance.
+
+154. VPCs and security groups
+Create security group and allow any traffic from any other AWS service that has this security group.
+Attach security group to;
+* EB Instance
+* RDS (Postgres)
+* EX (Redis)
+
+155. DB Creation
+* Search RBS. Create postgressql database.
+* Micro class. 
+* Name: multi-docker-postgres Master username:postgres Password: postgrespassword
+* Add it to  default VPC.
+* Not publically available.
+* DB name: fibvalues
+* Port: 5432
+
+Create
+
+156. Redis Creation
+* search elasticache. redis
+* name: multi-docker-redis
+* node type: t2 micro
+* Replicas: 0
+* Subnet group: new, default group.
+Create
+
+157. Custome Security Group
+* Create security group
+* name: multi-docker
+* group: multi-docker
+
+Rules - Inbound role
+* Custome TCP Rule, TCP (6), 5432-6379, allow traffic from 'multi-docker' Sec.Grp.
+
+158. Applying new security group to redis, db and elb
+
+* Cache. Modify, change modify sec grp.
+* RDS: click DB. Details 'modify'. Change security group. Apply.
+* ELB: Configuration, Instances, EC2 security groups-> click 'multi-docker'
+
+159. Setting env vars
+ELB -> Configuration -> Software -> Set variables here.
+* REDIS_HOST: elasticache -> get primary endpooint. Leave out port.
+* REDIS_PORT: 6379
+* PGUSER: postgres
+* PGPASSWORD: postgrespassword
+* PGHOST: db-> instances-> Connect section -> copy endpoint e.g. multi-docker-postgres.cozmjl6qojkt.eu-west-1.rds.amazonaws.com
+* PGDATABASE: fibvalues
+* PGPORT: 5432
+
+
+160. Notes on deployment
+
+This deployment wasn't verified as the redis cache would not display it's endpoint. All other steps appear to work however.  
+ADO deployment
+```
+- stage: Deploy
+  displayName: Deploy to AWS beanstalk
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: windows-latest
+    steps:       
+    - task: AWSCLI@1
+      displayName: Copy DockerCompose to S3
+      inputs:
+        awsCredentials: 'aws4'
+        regionName: 'eu-west-1'
+        awsCommand: 's3'
+        awsSubCommand: 'cp'
+        awsArguments: 'docker-compose.yml s3://elasticbeanstalk-eu-west-1-498738601876'
+    - task: AWSCLI@1
+      displayName: Create ELB app version
+      inputs:
+        awsCredentials: 'aws4'
+        regionName: 'eu-west-1'
+        awsCommand: 'elasticbeanstalk'
+        awsSubCommand: 'create-application-version'
+        awsArguments: '--application-name "multi-docker" --version-label 1 --source-bundle S3Bucket="elasticbeanstalk-eu-west-1-498738601876",S3Key=docker-compose.yml'
+    - task: AWSCLI@1
+      displayName: Update ELB to app version
+      inputs:
+        awsCredentials: 'aws4'
+        regionName: 'eu-west-1'
+        awsCommand: 'elasticbeanstalk'
+        awsSubCommand: 'update-environment'
+        awsArguments: '--application-name "multi-docker" --environment-name "Multidocker-env" --version-label=1'
+
+```
