@@ -565,7 +565,76 @@ aws elasticbeanstalk create-application-version --application-name "docker-react
 aws elasticbeanstalk update-environment --application-name "docker-react" --environment-name "Dockerreact-env" --version-label=1
 ```
 
+### Section 8 - Multi Containers 
 
+104. Set up worker folders and code 
+worker/ => where work is done and which will connect to redis
+server/ => express 
+
+
+
+### Section 9 - Dockerizing Multi Containers 
+
+117. Setup
+It's a good idea to point the running Docker iamge back to the existing files. This will speed up the work process as the image doesn't need to be rebuilt every time.
+Should set up volumes.
+
+118. Dockerfile.dev
+Setup Dockerfile.dev for client 
+```
+FROM node:16-alpine
+WORKDIR '/app'
+COPY ./package.json ./
+RUN npm install
+COPY . .
+CMD ["npm", "run", "start"]
+```
+Setup Dockerfile.dev for server 
+```
+FROM node:16-alpine
+WORKDIR "/app"
+COPY ./package.json ./
+RUN npm install
+COPY . .
+CMD ["npm", "run", "dev"]
+```
+Setup Dockerfile.dev for worker 
+```
+FROM node:16-alpine
+WORKDIR "/app"
+COPY ./package.json ./
+RUN npm install
+COPY . .
+CMD ["npm", "run", "dev"]
+```
+```
+docker build -f Dockerfile.dev .
+```
+
+120. DockerCompose file
+```
+toucn docker-compose.yml
+```
+```
+version: '3'
+services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - POSTGRES_PASSWORD=postgres_password
+  redis:
+    image: 'redis:latest'
+  nginx:
+    depends_on:
+      - api
+      - client
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      - '3050:80'
+```
 
 
 121. Add postgres to docker-compose. Add redis to docker-compose.
