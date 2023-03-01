@@ -1,0 +1,8 @@
+Test docker k8s volumes
+    Create cluster
+    Create a pod with a pvc claim
+    Make a pod
+    shell into pod and create temp file
+    Delete pod
+    Recreate pod
+    Check if temp file exists in same location 

@@ -1079,3 +1079,10 @@ Ingress will handle routing in k8s. Nginx was used in docker.
 
 215. Worker Cluster IP
 Worker does not need a cluster IP as nothing needs to communicate to it. The worker pod is subscribed to the redis pod so it should see the ingestion and be able to do its work. 
+
+231. k8 secrets
+kc create secret generic postgres_password --from-literal POSTGRES_PASSWORD=12345asdf
+
+# Sec 15 - Ingress Controllers in Kubernetes
+
+
